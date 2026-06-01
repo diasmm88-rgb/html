@@ -27,7 +27,7 @@ jobs:
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
             cd ${{ secrets.VPS_PATH }} &&
-            docker build -t html-page-app_dias . &&
-            docker rm -f html-page-app_dias || true &&
+            docker build -t html-page-app_dias .
+            docker rm -f html-page-app_dias || true
             docker run -d --name html-page-app_dias -p 8083:80 --restart always html-page-app_dias
           "
