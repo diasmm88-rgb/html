@@ -1,3 +1,5 @@
-.DS_Store
-Thumbs.db
-*.log
+FROM nginx:alpine
+
+COPY . /usr/share/nginx/html
+
+EXPOSE 80

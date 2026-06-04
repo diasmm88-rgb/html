@@ -1,14 +1,20 @@
 name: Deploy HTML Docker to VPS
+
 on:
   push:
     branches:
       - main
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # 1. Забираем код
       - name: Checkout code
         uses: actions/checkout@v4
+
+      # 2. Настройка SSH ключа
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -16,18 +22,38 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
+      # 3. Копируем проект на сервер (ЧИСТЫЙ rsync)
       - name: Copy project to VPS
         run: |
           rsync -avz --delete \
             --exclude ".git" \
             --exclude ".github" \
+            --exclude ".DS_Store" \
+            --exclude "Thumbs.db" \
+            --exclude "*.log" \
+            --exclude "node_modules" \
             ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}
 
+      # 4. Build + Run Docker на VPS
       - name: Build and run Docker on VPS
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
-            cd ${{ secrets.VPS_PATH }} &&
-            docker build -t html-page-app_dias .
-            docker rm -f html-page-app_dias || true
-            docker run -d --name html-page-app_dias -p 8083:80 --restart always html-page-app_dias
+            set -e
+
+            cd ${{ secrets.VPS_PATH }}
+
+            echo '🔨 Building Docker image...'
+            docker build --no-cache -t html_dias-app .
+
+            echo '🧹 Removing old container if exists...'
+            docker rm -f html_dias-app || true
+
+            echo '🚀 Running new container...'
+            docker run -d \
+              --name html_dias-app \
+              -p 8083:80 \
+              --restart always \
+              html_dias-app
+
+            echo '✅ Deployment finished successfully'
           "
