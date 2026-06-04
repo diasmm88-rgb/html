@@ -10,19 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Забираем код
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Настройка SSH ключа
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
 
-      # 3. Копируем проект на сервер (ЧИСТЫЙ rsync)
       - name: Copy project to VPS
         run: |
           rsync -avz --delete \
@@ -32,15 +29,15 @@ jobs:
             --exclude "Thumbs.db" \
             --exclude "*.log" \
             --exclude "node_modules" \
-            ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}
+            ./ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ secrets.VPS_PATH }}"
 
-      # 4. Build + Run Docker на VPS
       - name: Build and run Docker on VPS
         run: |
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
+          ssh "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "
             set -e
 
-            cd ${{ secrets.VPS_PATH }}
+            mkdir -p '${{ secrets.VPS_PATH }}'
+            cd '${{ secrets.VPS_PATH }}'
 
             echo '🔨 Building Docker image...'
             docker build --no-cache -t html_dias-app .
